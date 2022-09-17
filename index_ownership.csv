@@ -1,0 +1,2 @@
+Alias,Hadoop Jobs,Index Prod,Index UAT,Source,Index Description,Ingestion Logic,Index Type,Functional Owner,Data Owner,Technical Owner,Current Size,Yearly Growth,Retention Period,Retention Logic,Stakeholder ,BUH
+gny_test,smth_gny_test,gny_test_c123,gny_test_20220703,Hadoop,Test Description,Upsert,Master,Rachit,Nilesh,Pankaj,4.7gb,100%,NA,NA,NA,NA
