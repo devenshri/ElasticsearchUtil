@@ -20,12 +20,13 @@ cols = (("alias", "string", True),
         ("stakeholder", "string", False),
         ("buh", "string", False))
 
+
 def read_csv(filename):
     with open(filename, "rt", encoding="UTF-8") as f:
         next(f)
         for line in f:
             tup = line.strip().split(",")
-            #print(tup)
+            # print(tup)
             record = {}
             for i in range(len(cols)):
                 name, type, include = cols[i]
@@ -38,19 +39,22 @@ def read_csv(filename):
                         record[name] = tup[i]
             return json.dumps(record, ensure_ascii=False)
 
+
 def connect_elasticsearch():
     _es = None
-    _es = Elasticsearch(host = "localhost", port = 9200, http_auth=("elastic", "elastic"))
+    _es = Elasticsearch(host="localhost", port=9200,
+                        http_auth=("elastic", "elastic"))
     if _es.ping():
         print('Connected to Elasticsearch')
     else:
         print('Could not connect')
     return _es
 
+
 def create_index(es, index_name):
     created = False
-    settings={
-        "settings":{
+    settings = {
+        "settings": {
             "number_of_shards": 1,
             "number_of_replicas": 0
         }
@@ -58,11 +62,12 @@ def create_index(es, index_name):
     try:
         if not es.indices.exists(index_name):
             es.indices.create(index=index_name, body=settings)
-            created= True
+            created = True
     except Exception as ex:
         print(str(ex))
     finally:
         return created
+
 
 def index_data(es, index_name, record):
     try:
@@ -71,9 +76,11 @@ def index_data(es, index_name, record):
     except Exception as ex:
         print(str(ex))
 
+
 def search(es, index_name, search_body):
     res = es.search(index=index_name, body=search_body)
     return res
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
@@ -86,13 +93,14 @@ if __name__ == "__main__":
         print('Skipping Index Creation')
     json_data = read_csv("index_ownership.csv")
     index_data(es, index_name, json_data)
-    search_query ={
-  'query': {
-    'match': {
-      'data_owner': 'Nilesh'
+    search_query = {
+        'query': {
+            'match': {
+                'data_owner': 'Nilesh'
+            }
+        }
     }
-  }
-}
-    search_result = search(es, index_name,json.dumps(search_query))
+    search_result = search(es, index_name, json.dumps(search_query))
     print(search_result)
+
 
