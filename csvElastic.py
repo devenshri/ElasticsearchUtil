@@ -46,9 +46,9 @@ def connect_elasticsearch(es_url, es_port, es_username, es_password):
     _es = Elasticsearch(host=es_url, port=es_port,
                         http_auth=(es_username, es_password))
     if _es.ping():
-        print('Connected to Elasticsearch')
+        logging.info('Connected to Elasticsearch')
     else:
-        print('Could not connect to Elasticsearch')
+        logging.error('Could not connect to Elasticsearch')
         exit()
     return _es
 
@@ -66,7 +66,7 @@ def create_index(es, index_name):
             es.indices.create(index=index_name, body=settings)
             created = True
     except Exception as ex:
-        print(str(ex))
+        logging.warn(str(ex))
     finally:
         return created
 
@@ -74,9 +74,9 @@ def create_index(es, index_name):
 def index_data(es, index_name, record):
     try:
         es.index(index=index_name, doc_type="_doc", body=record)
-        print('Docs are pushed into the index ', index_name)
+        logging.info('Docs are pushed into the index %s', index_name)
     except Exception as ex:
-        print(str(ex))
+        logging.warn(str(ex))
 
 
 def search(es, index_name, search_body):
@@ -85,28 +85,36 @@ def search(es, index_name, search_body):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.ERROR)
 
-    config=ConfigParser()
+    config = ConfigParser()
     config.read('config.ini')
+
+    log_filename = config['logger']['filename']
+    log_level = config['logger']['loglevel']
+
     es_url = config['elastic']['url']
-    es_port= config['elastic']['port']
+    es_port = config['elastic']['port']
     es_username = config['elastic']['username']
     es_password = config['elastic']['password']
     es_index = config['elastic']['index']
     csv_file = config['elastic']['csv']
 
-    es = connect_elasticsearch(es_url, es_port, es_username, es_password)
+    logging.basicConfig(filename=log_filename, filemode='a',
+                        format='%(asctime)s - %(levelname)s:%(message)s', level=log_level)
     
+    logging.info('Started')
+
+    es = connect_elasticsearch(es_url, es_port, es_username, es_password)
+
     created = create_index(es, es_index)
     if created:
-        print('Index Created ', es_index)
+        logging.info('Index Created %s', es_index)
     else:
-        print('Skipping Index Creation')
+        logging.info('Skipping Index Creation')
 
-    json_data = read_csv(csv_file)    
+    json_data = read_csv(csv_file)
     index_data(es, es_index, json_data)
-    
+
     search_query = {
         'query': {
             'match': {
@@ -115,6 +123,5 @@ if __name__ == "__main__":
         }
     }
     search_result = search(es, es_index, json.dumps(search_query))
-    print(search_result)
-
-
+    logging.debug(search_result)
+    logging.info('Finished')
