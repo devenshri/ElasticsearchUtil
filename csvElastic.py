@@ -1,6 +1,7 @@
 import json
 import logging
 from elasticsearch import Elasticsearch
+from configparser import ConfigParser
 
 cols = (("alias", "string", True),
         ("hadoop_jobs", "string", True),
@@ -40,14 +41,15 @@ def read_csv(filename):
             return json.dumps(record, ensure_ascii=False)
 
 
-def connect_elasticsearch():
+def connect_elasticsearch(es_url, es_port, es_username, es_password):
     _es = None
-    _es = Elasticsearch(host="localhost", port=9200,
-                        http_auth=("elastic", "elastic"))
+    _es = Elasticsearch(host=es_url, port=es_port,
+                        http_auth=(es_username, es_password))
     if _es.ping():
         print('Connected to Elasticsearch')
     else:
-        print('Could not connect')
+        print('Could not connect to Elasticsearch')
+        exit()
     return _es
 
 
@@ -84,15 +86,27 @@ def search(es, index_name, search_body):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
-    es = connect_elasticsearch()
-    index_name = 'index_ownership'
-    created = create_index(es, index_name)
+
+    config=ConfigParser()
+    config.read('config.ini')
+    es_url = config['elastic']['url']
+    es_port= config['elastic']['port']
+    es_username = config['elastic']['username']
+    es_password = config['elastic']['password']
+    es_index = config['elastic']['index']
+    csv_file = config['elastic']['csv']
+
+    es = connect_elasticsearch(es_url, es_port, es_username, es_password)
+    
+    created = create_index(es, es_index)
     if created:
-        print('Index Created')
+        print('Index Created ', es_index)
     else:
         print('Skipping Index Creation')
-    json_data = read_csv("index_ownership.csv")
-    index_data(es, index_name, json_data)
+
+    json_data = read_csv(csv_file)    
+    index_data(es, es_index, json_data)
+    
     search_query = {
         'query': {
             'match': {
@@ -100,7 +114,7 @@ if __name__ == "__main__":
             }
         }
     }
-    search_result = search(es, index_name, json.dumps(search_query))
+    search_result = search(es, es_index, json.dumps(search_query))
     print(search_result)
 
 
